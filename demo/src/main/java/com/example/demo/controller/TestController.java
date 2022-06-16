@@ -1,7 +1,26 @@
 package com.example.demo.controller;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.CookieStore;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,43 +39,41 @@ import com.example.demo.services.TestServices;
 @RequestMapping("/api")
 public class TestController {
 	
+	String token;
+	String cookie;
+	List<String> cs;
+	
 	@PostMapping("/test")
-	// µ¥ÀÌÅÍ »ı¼º
+	// ë°ì´í„° ìƒì„±
 	public String Post()
 	{
-		return "Post ÀÔ´Ï´Ù";
+		return "Post ì…ë‹ˆë‹¤";
 	}
 	
 	@GetMapping("/test")
-	// µ¥ÀÌÅÍ Á¶È¸
+	// ë°ì´í„° ì¡°íšŒ
 	public String Get()
 	{
-		return "Get ÀÔ´Ï´Ù";
+		return "Get ì…ë‹ˆë‹¤";
 	}
 	
 	@PutMapping("/test")
-	// µ¥ÀÌÅÍ ¼öÁ¤
+	// ë°ì´í„° ìˆ˜ì •
 	public String Put()
 	{
-		return "Put ÀÔ´Ï´Ù";
+		return "Put ì…ë‹ˆë‹¤";
 	}
 	
 	@DeleteMapping("/test")
-	// µ¥ÀÌÅÍ »èÁ¦
+	// ë°ì´í„° ì‚­ì œ
 	public String Delete()
 	{
-		return "Delete ÀÔ´Ï´Ù";
+		return "Delete ì…ë‹ˆë‹¤";
 	}
 
 	@Autowired
 	TestServices testServices;
 
-    // È¸¿ø ÀÔ·Â
-//    @PostMapping("/save")
-//    public ResponseEntity <Test> save(@RequestBody Test member) {
-//        return new ResponseEntity<Test>(testServices.save(member), HttpStatus.OK);
-//    }
-    
     @PostMapping("/save")
     public Test save(@RequestBody Test test){
     	new ResponseEntity<Test>(testServices.save(test), HttpStatus.OK);
@@ -69,15 +86,85 @@ public class TestController {
         return testServices.selectAll();
     }
     
+    @GetMapping("/sapselect")
+    public String sapselect()
+    {
+    	try {
+    		URL url = new URL("https://my342781.sapbydesign.com/sap/byd/odata/cust/v1/externalresttestodata/RestAPIPostRootCollection?$format=json");
+
+    		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestProperty("Authorization", "Basic YWRtaW5fZGlidXM6V2VsY29tZTI=");
+			conn.setRequestProperty("x-csrf-token", "fetch");
+			conn.setRequestProperty("set-cookie", "fetch");
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+			
+			Map<String, List<String>> map = conn.getHeaderFields();
+			for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+			    if ("x-csrf-token".equals(entry.getKey())) {
+			        token = entry.getValue().get(0);
+			       }
+			    if ("set-cookie".equals(entry.getKey())) {
+			    	cookie = entry.getValue().get(0).split(";")[0];
+			    }
+			}
+		
+			// sapset();
+			return br.readLine();
+			
+    	}
+    	catch (Exception e) {
+			return e.getMessage();
+		}
+    }
     
-	/*
-	 * @PostMapping("/save") public ResponseEntity <Test> save(@RequestBody Test
-	 * requestData){ // get°ú ´Ù¸£°Ô °´Ã¼¸¦ »ç¿ëÇÏ¿© ¹Ş¾Æ¿Íµµ RequestBody¸¦ ÀÔ·ÂÇØÁà¾ßÇÑ´Ù.
-	 * 
-	 * System.out.println(requestData); return new
-	 * ResponseEntity<Test>(testServices.save(requestData), HttpStatus.OK); }
-	 */
-    
-    
-    
+    @PostMapping("/sapset")
+    public void sapset()
+   	{
+    	try 
+    	{
+			URL url = new URL("https://my342781.sapbydesign.com/sap/byd/odata/cust/v1/externalresttestodata/RestAPIPostRootCollection");
+			
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Accept","application/json");
+			conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+			
+			conn.setRequestProperty("x-csrf-token", token);
+		    conn.setRequestProperty("Authorization", "Basic YWRtaW5fZGlidXM6V2VsY29tZTI=");
+		    conn.setRequestProperty("Cookie", cookie);
+
+			conn.setDoInput(true); // ì„œë²„ì— ì „ë‹¬í•  ê°’ì´ ìˆë‹¤ë©´ true
+			conn.setDoOutput(true); // ì„œë²„ì—ì„œ ë°›ì„ ê°’ì´ ìˆë‹¤ë©´ true
+			
+			// ë³´ë‚¼ ë°ì´í„° ìƒì„±
+			JSONObject obj = new JSONObject();
+			obj.put("ID", "í…ŒìŠ¤íŠ¸");
+	
+			// bufferë¡œ ë°ì´í„° ì „ë‹¬
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream(), "UTF-8"));
+			bw.write(obj.toString());
+			bw.flush();
+			bw.close();
+	
+			// bufferë¡œ ë°ì´í„° ìˆ˜ì‹ 
+			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+			
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			
+			//printing response
+			System.out.println(response.toString());
+    	}
+    	catch (Exception e) 
+    	{
+    		System.out.println(e.getMessage());
+    		e.printStackTrace();
+    	}
+   	} 
+
 }
